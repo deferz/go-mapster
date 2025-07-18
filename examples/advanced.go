@@ -169,7 +169,7 @@ func main() {
 		ShippingAddress: address,
 	}
 
-	fmt.Println("=== Advanced Mapster Example ===\n")
+	fmt.Println("=== Advanced Mapster Example ===")
 
 	// Customer mapping
 	customerDTO := mapster.Map[CustomerDTO](customer)

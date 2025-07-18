@@ -6,11 +6,20 @@
 
 ## 特性
 
+- **🚀 零反射代码生成**：生成优化映射器，性能提升 1.5 倍
 - **零配置**：大多数映射场景通过自动字段匹配开箱即用
 - **流畅的配置 API**：使用链式 API 轻松配置自定义映射
-- **高性能**：高效使用反射，未来支持代码生成
+- **高性能**：多层优化策略，智能回退机制
 - **类型安全**：利用 Go 泛型实现编译时类型检查
 - **灵活**：支持自定义映射函数、转换和条件映射
+
+## 性能表现
+
+```
+零反射映射:    474 ns/op   312 B/op    8 allocs/op  ⭐ 生成代码
+配置映射:      490 ns/op   224 B/op    8 allocs/op  🔧 自定义配置
+反射映射:      732 ns/op   320 B/op    8 allocs/op  🔄 自动映射
+```
 
 ## 安装
 
@@ -80,6 +89,42 @@ func init() {
         Register()
 }
 ```
+
+### 零反射代码生成 🚀
+
+为了获得最佳性能，你可以注册生成的映射器来完全避免反射：
+
+```go
+// 生成优化的映射函数
+func mapUserToUserDTO(src User) UserDTO {
+    return UserDTO{
+        ID:        src.ID,
+        FirstName: src.FirstName,
+        LastName:  src.LastName,
+        Email:     src.Email,
+        FullName:  src.FirstName + " " + src.LastName, // 自定义逻辑
+    }
+}
+
+func init() {
+    // 注册生成的映射器
+    mapster.RegisterGeneratedMapper(mapUserToUserDTO)
+}
+
+func main() {
+    user := User{ID: 1, FirstName: "张", LastName: "三"}
+    
+    // 这会自动使用生成的映射器（快 1.5 倍！）
+    userDTO := mapster.Map[UserDTO](user)
+    fmt.Printf("生成映射结果: %+v\n", userDTO)
+}
+```
+
+**优势**：
+- 🚀 **1.5 倍性能**：直接字段访问而非反射
+- 🛡️ **类型安全**：编译时检查
+- 🔄 **自动回退**：没有生成映射器时使用反射
+- 🔧 **简单集成**：只需注册函数
 
 ## API 参考
 

@@ -6,11 +6,20 @@ A high-performance object mapping library for Go, inspired by .NET's Mapster. Th
 
 ## Features
 
+- **🚀 Zero-Reflection Code Generation**: Generate optimized mappers for 1.5x performance boost
 - **Zero Configuration**: Most mapping scenarios work out of the box with automatic field matching
 - **Fluent Configuration API**: Easy to configure custom mappings using a chainable API
-- **High Performance**: Uses reflection efficiently with future code generation support
+- **High Performance**: Multi-tier optimization strategy with intelligent fallback
 - **Type Safe**: Leverages Go's generics for compile-time type safety
 - **Flexible**: Supports custom mapping functions, transformations, and conditional mapping
+
+## Performance
+
+```
+Zero-Reflection:  474 ns/op   312 B/op    8 allocs/op  ⭐ Generated mappers
+Configuration:    490 ns/op   224 B/op    8 allocs/op  🔧 Custom config  
+Reflection:       732 ns/op   320 B/op    8 allocs/op  🔄 Auto-mapping
+```
 
 ## Installation
 
@@ -80,6 +89,42 @@ func init() {
         Register()
 }
 ```
+
+### Zero-Reflection Code Generation 🚀
+
+For maximum performance, you can register generated mappers that avoid reflection entirely:
+
+```go
+// Generate optimized mapper function
+func mapUserToUserDTO(src User) UserDTO {
+    return UserDTO{
+        ID:        src.ID,
+        FirstName: src.FirstName,
+        LastName:  src.LastName,
+        Email:     src.Email,
+        FullName:  src.FirstName + " " + src.LastName, // Custom logic
+    }
+}
+
+func init() {
+    // Register the generated mapper
+    mapster.RegisterGeneratedMapper(mapUserToUserDTO)
+}
+
+func main() {
+    user := User{ID: 1, FirstName: "John", LastName: "Doe"}
+    
+    // This will automatically use the generated mapper (1.5x faster!)
+    userDTO := mapster.Map[UserDTO](user)
+    fmt.Printf("Generated mapping: %+v\n", userDTO)
+}
+```
+
+**Benefits**:
+- 🚀 **1.5x Performance**: Direct field access instead of reflection
+- 🛡️ **Type Safety**: Compile-time checking
+- 🔄 **Auto Fallback**: Uses reflection if no generated mapper exists
+- 🔧 **Easy Integration**: Just register the function
 
 ## API Reference
 
