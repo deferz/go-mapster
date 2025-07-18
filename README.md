@@ -4,14 +4,16 @@ A high-performance object mapping library for Go, inspired by .NET's Mapster. Th
 
 **[中文文档](README_zh.md)** | **English**
 
-## Features
+## ✨ Key Features
 
-- **🚀 Zero-Reflection Code Generation**: Generate optimized mappers for 1.5x performance boost
-- **Zero Configuration**: Most mapping scenarios work out of the box with automatic field matching
-- **Fluent Configuration API**: Easy to configure custom mappings using a chainable API
-- **High Performance**: Multi-tier optimization strategy with intelligent fallback
-- **Type Safe**: Leverages Go's generics for compile-time type safety
-- **Flexible**: Supports custom mapping functions, transformations, and conditional mapping
+- **🚀 Zero-Reflection Code Generation**: Generate optimized mapping code at build time for 1.5x performance boost
+- **🎯 Type-Safe Generic API**: Leverages Go 1.18+ generics for compile-time type safety
+- **🔧 Fluent Configuration**: Intuitive, chainable API for complex mapping scenarios
+- **⚡ High Performance**: Both zero-reflection generated code and optimized reflection-based mapping
+- **🎭 Flexible Field Mapping**: Support for custom fields, transformations, and conditional mapping
+- **📊 Deep Path Resolution**: Access nested object properties using dot notation (e.g., `Company.Address.City`)
+- **🔄 Circular Reference Detection**: Safe handling of complex object graphs with circular references
+- **📦 Batch Processing**: Efficient slice and array mapping capabilities
 
 ## Performance
 
@@ -156,6 +158,44 @@ mapster.Config[Source, Target]().
     Register()
 ```
 
+### Deep Path Resolution
+
+Access nested object properties using dot notation:
+
+```go
+type Employee struct {
+    Name    string
+    Company *Company
+}
+
+type Company struct {
+    Name    string
+    Address Address
+}
+
+type EmployeeDTO struct {
+    Name        string
+    CompanyName string
+    CompanyCity string
+}
+
+mapster.Config[Employee, EmployeeDTO]().
+    Map("CompanyName").FromPath("Company.Name").
+    Map("CompanyCity").FromPath("Company.Address.City").
+    Register()
+
+employee := Employee{
+    Name: "John Doe",
+    Company: &Company{
+        Name: "Tech Corp",
+        Address: Address{City: "San Francisco"},
+    },
+}
+
+dto := mapster.Map[EmployeeDTO](employee)
+// Result: {Name: "John Doe", CompanyName: "Tech Corp", CompanyCity: "San Francisco"}
+```
+
 ### Custom Functions
 
 ```go
@@ -164,6 +204,42 @@ mapster.Config[User, UserDTO]().
         return u.FirstName + " " + u.LastName
     }).
     Register()
+```
+
+### Circular Reference Handling
+
+Safely handle complex object graphs:
+
+```go
+type Node struct {
+    ID       int
+    Name     string
+    Parent   *Node
+    Children []*Node
+}
+
+type NodeDTO struct {
+    ID         int
+    Name       string
+    ParentName string
+    ChildCount int
+}
+
+// Safe mapping avoids circular references
+mapster.Config[Node, NodeDTO]().
+    Map("ParentName").FromFunc(func(n Node) interface{} {
+        if n.Parent != nil {
+            return n.Parent.Name
+        }
+        return ""
+    }).
+    Map("ChildCount").FromFunc(func(n Node) interface{} {
+        return len(n.Children)
+    }).
+    Register()
+
+// Works safely even with circular references
+dto := mapster.Map[NodeDTO](nodeWithCircularRef)
 ```
 
 ### Transformations
@@ -219,17 +295,26 @@ Mapster for Go is optimized for high-performance scenarios:
 ## Roadmap
 
 ### Current Status ✅
-- Basic reflection-based mapping
-- Fluent configuration API  
-- Custom mapping functions
-- Slice mapping
+- **🚀 Zero-Reflection Code Generation**: 1.5x performance boost with generated mappers
+- **Basic reflection-based mapping**: Automatic field matching
+- **Fluent configuration API**: Chainable configuration interface
+- **Custom mapping functions**: Complex logic support
+- **Slice mapping**: Batch object processing
+- **Basic nested object mapping**: Automatic struct-in-struct mapping
 
-### Coming Soon 🚧
-- Code generation for zero-reflection mapping
-- Enhanced nested object mapping
-- Validation integration
-- Comprehensive benchmarks
-- Additional configuration options
+### Enhanced Features in Development 🚧
+- **Deep path mapping**: Complete `FromPath("Address.Street")` implementation
+- **Flattening mappings**: Smart nested-to-flat structure mapping
+- **Circular reference handling**: Safe mapping without infinite recursion
+- **Dynamic field mapping**: Runtime field discovery and mapping
+- **Validation integration**: Data validation during mapping process
+- **Advanced configuration options**: Conditional mapping, field ignoring, etc.
+
+### Future Plans 📋
+- **Compile-time code generation tools**: Automated mapper generation
+- **IDE plugin support**: VS Code extensions
+- **Performance analysis tools**: Mapping performance monitoring
+- **Community contribution templates**: Standardized contribution workflow
 
 Want to contribute? Check out our [Contributing Guidelines](#contributing)!
 

@@ -180,6 +180,28 @@ func getMappingKey(sourceType, targetType reflect.Type) string {
 
 // GetMappingConfig retrieves a mapping configuration for given types
 func GetMappingConfig(sourceType, targetType reflect.Type) *MappingDefinition {
+	// Try exact match first
 	key := getMappingKey(sourceType, targetType)
-	return globalConfigs[key]
+	if config := globalConfigs[key]; config != nil {
+		return config
+	}
+
+	// Try to dereference pointer types and match again
+	actualSourceType := sourceType
+	if sourceType.Kind() == reflect.Ptr {
+		actualSourceType = sourceType.Elem()
+	}
+
+	actualTargetType := targetType
+	if targetType.Kind() == reflect.Ptr {
+		actualTargetType = targetType.Elem()
+	}
+
+	// Try with dereferenced types
+	if actualSourceType != sourceType || actualTargetType != targetType {
+		key = getMappingKey(actualSourceType, actualTargetType)
+		return globalConfigs[key]
+	}
+
+	return nil
 }

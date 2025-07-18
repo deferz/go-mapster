@@ -2,39 +2,74 @@
 
 ## 项目概述
 
-Go Mapster 是一个高性能的对象映射库，采用"约定优于配置"的设计理念，支持零配置自动映射和灵活的自定义配置。
+Go Mapster 是一个高性能的对象映射库### Core Features Implemented ✅
 
-## 核心架构设计
+1. **Zero-Reflection Code Generation**
+   - ✅ Generated mapper registration and retrieval
+   - ✅ Performance benchmarks showing 1.5x improvement
+   - ✅ Automatic fallback to reflection-based mapping
 
-### 1. 系统架构图
+2. **Type-Safe Generic API**
+   - ✅ `Map[T any](src any) T` - Primary mapping function
+   - ✅ `MapSlice[T any](src any) []T` - Slice mapping
+   - ✅ `MapTo[T any](src any, target *T)` - In-place mapping
+
+3. **Fluent Configuration API**
+   - ✅ `Config[S, T any]()` - Start configuration chain
+   - ✅ `Map(field)` - Field configuration
+   - ✅ `FromField(field)` - Custom source field mapping
+   - ✅ `FromFunc(func)` - Custom mapping functions
+   - ✅ `FromPath(path)` - Deep path resolution with dot notation
+   - ✅ `Transform(func)` - Value transformations
+   - ✅ `When(condition)` - Conditional mapping
+   - ✅ `Ignore(field)` - Field exclusion
+   - ✅ `Register()` - Configuration registration
+
+4. **Advanced Path Resolution**
+   - ✅ Dot notation path parsing (`Company.Address.City`)
+   - ✅ Nested struct traversal
+   - ✅ Pointer dereferencing
+   - ✅ Nil safety checks
+   - ✅ Multi-level nesting support
+
+5. **Circular Reference Detection**
+   - ✅ Pointer address tracking
+   - ✅ Depth limitation
+   - ✅ Safe mapping strategies
+   - ✅ Custom function-based circular reference avoidance
+
+6. **High Performance**
+   - ✅ Multiple optimization strategies
+   - ✅ Smart fallback mechanisms
+   - ✅ Efficient reflection usage
+   - ✅ Performance benchmarking持零配置自动映射和灵活的自定义配置。
+
+## Architecture Overview
 
 ```mermaid
 graph TB
-    UserCall[用户调用 Map/MapSlice/MapTo] --> TypeCheck{映射类型检查}
-    TypeCheck -->|优先级1| GeneratedMapperCheck{有生成映射器?}
-    GeneratedMapperCheck -->|是| ZeroReflectionMapping[🚀 零反射映射]
-    GeneratedMapperCheck -->|否| ConfigCheck{有自定义配置?}
+    A[User Code] --> B[Map/MapSlice API]
+    B --> C{Generated Mapper?}
+    C -->|Yes| D[Generated Function]
+    C -->|No| E[Reflection Mapping]
+    E --> F{Custom Config?}
+    F -->|Yes| G[mapWithConfig]
+    F -->|No| H[mapReflect]
     
-    ConfigCheck -->|优先级2| CustomConfigMapping[⚙️ 配置映射]
-    ConfigCheck -->|优先级3| ConventionMapping[📋 约定映射]
+    G --> I[Path Resolution]
+    G --> J[Custom Functions]
+    G --> K[Transformations]
+    G --> L[Circular Detection]
     
-    CustomConfigMapping --> CustomFuncMapping[自定义函数映射]
-    CustomConfigMapping --> FieldNameMapping[字段名映射]
-    CustomConfigMapping --> TransformMapping[转换映射]
+    I --> M[getValueByPath]
+    L --> N[CircularReferenceDetector]
     
-    ConventionMapping --> SameNameFieldMatching[同名字段匹配]
-    SameNameFieldMatching --> TypeCompatibilityCheck[类型兼容检查]
-    
-    ZeroReflectionMapping --> ReturnResult[🎯 返回结果]
-    CustomFuncMapping --> ReturnResult
-    FieldNameMapping --> ReturnResult
-    TransformMapping --> ReturnResult
-    TypeCompatibilityCheck --> ReturnResult
-    
-    %% 性能标注
-    ZeroReflectionMapping -.->|474ns| PerformanceNote1[⚡ 最快路径]
-    CustomConfigMapping -.->|490ns| PerformanceNote2[🔧 灵活配置]
-    ConventionMapping -.->|732ns| PerformanceNote3[🔄 默认行为]
+    subgraph "Advanced Features"
+        M
+        N
+        O[Deep Nesting Support]
+        P[Nil Safety]
+    end
 ```
 
 ### 2. 包结构设计
@@ -883,19 +918,78 @@ graph TD
     ElementLevelMapping --> MappingComplete
 ```
 
+## 高级功能详解
+
+### 深度路径解析
+
+**功能描述**: 支持使用点标记法访问嵌套对象属性，如 `Company.Address.City`
+
+**实现原理**:
+1. 字符串分割解析路径
+2. 逐级反射字段访问
+3. 自动指针解引用
+4. Nil 安全检查
+
+**使用示例**:
+```go
+mapster.Config[Employee, EmployeeDTO]().
+    Map("CompanyName").FromPath("Company.Name").
+    Map("CompanyCity").FromPath("Company.Address.City").
+    Register()
+```
+
+**支持特性**:
+- ✅ 多层嵌套访问
+- ✅ 指针自动解引用  
+- ✅ Nil 安全检查
+- ✅ 接口和 map 类型支持
+
+### 循环引用检测
+
+**功能描述**: 检测和安全处理包含循环引用的复杂对象图
+
+**实现策略**:
+1. **指针地址追踪**: 记录已访问的指针地址
+2. **深度限制**: 设置最大递归深度防止栈溢出
+3. **自定义函数避免**: 通过用户自定义函数控制映射逻辑
+
+**使用示例**:
+```go
+mapster.Config[Node, NodeDTO]().
+    Map("ParentName").FromFunc(func(n Node) interface{} {
+        if n.Parent != nil {
+            return n.Parent.Name
+        }
+        return ""
+    }).
+    Register()
+```
+
+**安全保障**:
+- ✅ 自动检测循环引用
+- ✅ 优雅处理自我引用
+- ✅ 防止无限递归
+- ✅ 保持数据完整性
+
 ## 最佳实践建议
 
 ### 1. 使用建议
 - 优先使用零配置映射
 - 复杂场景才使用自定义配置
 - 注意函数返回类型匹配
+- 深度路径解析适用于只读访问
+- 循环引用处理使用自定义函数
 
 ### 2. 性能建议
 - 避免频繁的类型转换
 - 大切片考虑分批处理
 - 复用映射配置
+- 路径解析有性能开销，适合数据转换场景
+- 生成代码映射性能最优
 
 ### 3. 安全建议
 - 验证自定义函数的类型安全
 - 处理可能的 panic 情况
 - 注意并发访问安全
+- 深度嵌套时注意 nil 检查
+- 复杂对象图建议使用自定义函数映射

@@ -1,7 +1,9 @@
 package mapster
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 )
 
 // reflectionMap performs mapping using reflection
@@ -28,6 +30,14 @@ func reflectionMap[T any](src any) T {
 func mapWithConfig(srcValue, targetValue reflect.Value, config *MappingDefinition) {
 	if !srcValue.IsValid() || !targetValue.IsValid() {
 		return
+	}
+
+	// Dereference pointer if necessary
+	if srcValue.Kind() == reflect.Ptr {
+		if srcValue.IsNil() {
+			return
+		}
+		srcValue = srcValue.Elem()
 	}
 
 	srcType := srcValue.Type()
@@ -70,9 +80,20 @@ func mapWithConfig(srcValue, targetValue reflect.Value, config *MappingDefinitio
 				continue
 
 			case MappingTypeField:
-				// Map from specified source field
-				if srcFieldValue, exists := srcFields[mapping.SourceField]; exists {
-					mapReflect(srcFieldValue, targetFieldValue)
+				// Map from specified source field or path
+				sourceField := mapping.SourceField
+
+				// Check if it's a path (contains dots)
+				if strings.Contains(sourceField, ".") {
+					// Use path resolution
+					if pathValue, err := getValueByPath(srcValue, sourceField); err == nil && pathValue.IsValid() {
+						mapReflect(pathValue, targetFieldValue)
+					}
+				} else {
+					// Simple field mapping
+					if srcFieldValue, exists := srcFields[sourceField]; exists {
+						mapReflect(srcFieldValue, targetFieldValue)
+					}
 				}
 
 			case MappingTypeFunc:
@@ -268,4 +289,136 @@ func mapSliceToSlice(srcValue, targetValue reflect.Value) {
 	}
 
 	targetValue.Set(targetSlice)
+}
+
+// getValueByPath extracts a value from a nested structure using dot notation
+// e.g., "Address.Street", "Company.Address.City"
+func getValueByPath(src reflect.Value, path string) (reflect.Value, error) {
+	if path == "" {
+		return src, nil
+	}
+
+	parts := strings.Split(path, ".")
+	current := src
+
+	for i, part := range parts {
+		if !current.IsValid() {
+			return reflect.Value{}, fmt.Errorf("invalid value at path segment '%s' (index %d)", part, i)
+		}
+
+		// Dereference pointers
+		if current.Kind() == reflect.Ptr {
+			if current.IsNil() {
+				return reflect.Value{}, fmt.Errorf("nil pointer at path segment '%s' (index %d)", part, i)
+			}
+			current = current.Elem()
+		}
+
+		// Handle different types
+		switch current.Kind() {
+		case reflect.Struct:
+			// Find field by name
+			fieldValue := current.FieldByName(part)
+			if !fieldValue.IsValid() {
+				return reflect.Value{}, fmt.Errorf("field '%s' not found in struct at path segment %d", part, i)
+			}
+			current = fieldValue
+
+		case reflect.Map:
+			// Handle map access
+			key := reflect.ValueOf(part)
+			if !key.Type().AssignableTo(current.Type().Key()) {
+				return reflect.Value{}, fmt.Errorf("key type mismatch at path segment '%s' (index %d)", part, i)
+			}
+			mapValue := current.MapIndex(key)
+			if !mapValue.IsValid() {
+				return reflect.Value{}, fmt.Errorf("key '%s' not found in map at path segment %d", part, i)
+			}
+			current = mapValue
+
+		case reflect.Interface:
+			// Unwrap interface
+			if current.IsNil() {
+				return reflect.Value{}, fmt.Errorf("nil interface at path segment '%s' (index %d)", part, i)
+			}
+			current = current.Elem()
+			// Recursively process remaining path
+			remainingPath := strings.Join(parts[i:], ".")
+			return getValueByPath(current, remainingPath)
+
+		default:
+			return reflect.Value{}, fmt.Errorf("cannot navigate into type %v at path segment '%s' (index %d)", current.Kind(), part, i)
+		}
+	}
+
+	return current, nil
+}
+
+// CircularReferenceDetector tracks visited objects to prevent infinite recursion
+type CircularReferenceDetector struct {
+	visited      map[uintptr]bool
+	maxDepth     int
+	currentDepth int
+}
+
+// NewCircularReferenceDetector creates a new detector with specified max depth
+func NewCircularReferenceDetector(maxDepth int) *CircularReferenceDetector {
+	return &CircularReferenceDetector{
+		visited:      make(map[uintptr]bool),
+		maxDepth:     maxDepth,
+		currentDepth: 0,
+	}
+}
+
+// Enter checks if we can safely enter an object (returns false if circular reference detected)
+func (d *CircularReferenceDetector) Enter(value reflect.Value) bool {
+	d.currentDepth++
+
+	// Check max depth
+	if d.currentDepth > d.maxDepth {
+		return false
+	}
+
+	// Only track pointer types and interfaces that could cause cycles
+	if value.Kind() != reflect.Ptr && value.Kind() != reflect.Interface {
+		return true
+	}
+
+	if !value.IsValid() || value.IsNil() {
+		return true
+	}
+
+	// Get the pointer address
+	ptr := value.Pointer()
+	if d.visited[ptr] {
+		return false // Circular reference detected
+	}
+
+	d.visited[ptr] = true
+	return true
+}
+
+// Exit decrements the depth counter and removes tracking for the object
+func (d *CircularReferenceDetector) Exit(value reflect.Value) {
+	d.currentDepth--
+
+	if value.Kind() == reflect.Ptr || value.Kind() == reflect.Interface {
+		if value.IsValid() && !value.IsNil() {
+			ptr := value.Pointer()
+			delete(d.visited, ptr)
+		}
+	}
+}
+
+// mapReflectWithCircularDetection performs mapping with circular reference detection
+func mapReflectWithCircularDetection(srcValue, targetValue reflect.Value, detector *CircularReferenceDetector) {
+	// Check for circular references
+	if !detector.Enter(srcValue) {
+		// Circular reference detected, skip mapping
+		return
+	}
+	defer detector.Exit(srcValue)
+
+	// Perform regular mapping
+	mapReflect(srcValue, targetValue)
 }
