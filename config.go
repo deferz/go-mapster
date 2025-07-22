@@ -20,9 +20,9 @@ type FieldMapping struct {
 	TargetField string
 	MappingType MappingType
 	SourceField string
-	CustomFunc  interface{} // Function for custom mapping
-	Transform   interface{} // Transform function
-	Condition   interface{} // Condition function for conditional mapping
+	CustomFunc  any // Function for custom mapping
+	Transform   any // Transform function
+	Condition   any // Condition function for conditional mapping
 }
 
 // MappingDefinition represents a complete mapping configuration between two types
@@ -99,7 +99,7 @@ func (f *FieldConfigBuilder[S, T]) FromField(sourceField string) *ConfigBuilder[
 }
 
 // FromFunc maps using a custom function
-func (f *FieldConfigBuilder[S, T]) FromFunc(mapperFunc func(S) interface{}) *ConfigBuilder[S, T] {
+func (f *FieldConfigBuilder[S, T]) FromFunc(mapperFunc func(S) any) *ConfigBuilder[S, T] {
 	f.configBuilder.definition.FieldMappings[f.targetField] = FieldMapping{
 		TargetField: f.targetField,
 		MappingType: MappingTypeFunc,
@@ -121,7 +121,7 @@ func (f *FieldConfigBuilder[S, T]) FromPath(path string) *ConfigBuilder[S, T] {
 }
 
 // Transform applies a transformation function to the mapped value
-func (f *FieldConfigBuilder[S, T]) Transform(transformFunc interface{}) *ConfigBuilder[S, T] {
+func (f *FieldConfigBuilder[S, T]) Transform(transformFunc any) *ConfigBuilder[S, T] {
 	// Get existing mapping or create a new one
 	mapping, exists := f.configBuilder.definition.FieldMappings[f.targetField]
 	if !exists {
@@ -163,7 +163,7 @@ func (c *ConditionConfigBuilder[S, T]) FromField(sourceField string) *ConfigBuil
 }
 
 // FromFunc sets a custom function for conditional mapping
-func (c *ConditionConfigBuilder[S, T]) FromFunc(mapperFunc func(S) interface{}) *ConfigBuilder[S, T] {
+func (c *ConditionConfigBuilder[S, T]) FromFunc(mapperFunc func(S) any) *ConfigBuilder[S, T] {
 	c.fieldConfigBuilder.configBuilder.definition.FieldMappings[c.fieldConfigBuilder.targetField] = FieldMapping{
 		TargetField: c.fieldConfigBuilder.targetField,
 		MappingType: MappingTypeFunc,

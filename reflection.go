@@ -107,7 +107,7 @@ func mapWithConfig(srcValue, targetValue reflect.Value, config *MappingDefinitio
 						} else if result.Type().ConvertibleTo(targetFieldValue.Type()) {
 							targetFieldValue.Set(result.Convert(targetFieldValue.Type()))
 						} else {
-							// For interface{} results, try to extract the underlying value
+							// For any results, try to extract the underlying value
 							if result.Kind() == reflect.Interface && !result.IsNil() {
 								actualValue := result.Elem()
 								if actualValue.Type().AssignableTo(targetFieldValue.Type()) {
@@ -149,7 +149,7 @@ func mapWithConfig(srcValue, targetValue reflect.Value, config *MappingDefinitio
 }
 
 // callCustomFunc calls a custom mapping function
-func callCustomFunc(fn interface{}, src interface{}) reflect.Value {
+func callCustomFunc(fn any, src any) reflect.Value {
 	fnValue := reflect.ValueOf(fn)
 	if fnValue.Kind() != reflect.Func {
 		return reflect.Value{}
@@ -174,7 +174,7 @@ func callCustomFunc(fn interface{}, src interface{}) reflect.Value {
 }
 
 // callTransformFunc calls a transform function
-func callTransformFunc(fn interface{}, src interface{}) reflect.Value {
+func callTransformFunc(fn any, src any) reflect.Value {
 	fnValue := reflect.ValueOf(fn)
 	if fnValue.Kind() != reflect.Func {
 		return reflect.Value{}

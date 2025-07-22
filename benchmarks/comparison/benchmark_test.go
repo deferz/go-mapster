@@ -66,7 +66,7 @@ type SimpleUserDTO struct {
 func init() {
 	// 配置 mapster
 	mapster.Config[User, UserDTO]().
-		Map("FullName").FromFunc(func(u User) interface{} {
+		Map("FullName").FromFunc(func(u User) any {
 		return u.FirstName + " " + u.LastName
 	}).
 		Register()

@@ -29,7 +29,7 @@ type BenchUserDTO struct {
 func init() {
 	// Configure mapping for benchmark
 	Config[BenchUser, BenchUserDTO]().
-		Map("FullName").FromFunc(func(u BenchUser) interface{} {
+		Map("FullName").FromFunc(func(u BenchUser) any {
 		return u.FirstName + " " + u.LastName
 	}).
 		Register()

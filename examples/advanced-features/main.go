@@ -71,13 +71,13 @@ func init() {
 
 	// 配置安全映射（避免循环引用）- 使用不同的映射避免冲突
 	mapster.Config[Employee, EmployeeSafeDTO]().
-		Map("CompanyName").FromFunc(func(e Employee) interface{} {
+		Map("CompanyName").FromFunc(func(e Employee) any {
 		if e.Company != nil {
 			return e.Company.Name
 		}
 		return ""
 	}).
-		Map("ManagerName").FromFunc(func(e Employee) interface{} {
+		Map("ManagerName").FromFunc(func(e Employee) any {
 		if e.Manager != nil {
 			return e.Manager.FirstName + " " + e.Manager.LastName
 		}

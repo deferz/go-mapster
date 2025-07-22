@@ -77,10 +77,10 @@ func main() {
 func init() {
     // Configure custom mappings
     mapster.Config[User, UserDTO]().
-        Map("FullName").FromFunc(func(u User) interface{} {
+        Map("FullName").FromFunc(func(u User) any {
             return u.FirstName + " " + u.LastName
         }).
-        Map("AgeGroup").FromFunc(func(u User) interface{} {
+        Map("AgeGroup").FromFunc(func(u User) any {
             if u.Age < 18 {
                 return "Minor"
             } else if u.Age < 65 {
@@ -200,7 +200,7 @@ dto := mapster.Map[EmployeeDTO](employee)
 
 ```go
 mapster.Config[User, UserDTO]().
-    Map("FullName").FromFunc(func(u User) interface{} {
+    Map("FullName").FromFunc(func(u User) any {
         return u.FirstName + " " + u.LastName
     }).
     Register()
@@ -227,13 +227,13 @@ type NodeDTO struct {
 
 // Safe mapping avoids circular references
 mapster.Config[Node, NodeDTO]().
-    Map("ParentName").FromFunc(func(n Node) interface{} {
+    Map("ParentName").FromFunc(func(n Node) any {
         if n.Parent != nil {
             return n.Parent.Name
         }
         return ""
     }).
-    Map("ChildCount").FromFunc(func(n Node) interface{} {
+    Map("ChildCount").FromFunc(func(n Node) any {
         return len(n.Children)
     }).
     Register()

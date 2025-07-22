@@ -115,7 +115,7 @@ func init() {
 		Map("CompanyCity").FromPath("Company.Address.City").
 		Map("CompanyCountry").FromPath("Company.Address.Country").
 		Map("ManagerName").FromPath("Manager.Name").
-		Map("ReportCount").FromFunc(func(e Employee) interface{} {
+		Map("ReportCount").FromFunc(func(e Employee) any {
 		return len(e.Reports)
 	}).
 		Register()
@@ -190,20 +190,20 @@ type OrderSummaryDTO struct {
 func init() {
 	// 配置自定义函数映射
 	mapster.Config[Order, OrderSummaryDTO]().
-		Map("ItemCount").FromFunc(func(o Order) interface{} {
+		Map("ItemCount").FromFunc(func(o Order) any {
 		return len(o.Items)
 	}).
-		Map("TotalQuantity").FromFunc(func(o Order) interface{} {
+		Map("TotalQuantity").FromFunc(func(o Order) any {
 		total := 0
 		for _, item := range o.Items {
 			total += item.Quantity
 		}
 		return total
 	}).
-		Map("FormattedAmount").FromFunc(func(o Order) interface{} {
+		Map("FormattedAmount").FromFunc(func(o Order) any {
 		return fmt.Sprintf("¥%.2f", o.TotalAmount)
 	}).
-		Map("StatusText").FromFunc(func(o Order) interface{} {
+		Map("StatusText").FromFunc(func(o Order) any {
 		switch o.Status {
 		case 1:
 			return "待付款"
@@ -217,14 +217,14 @@ func init() {
 			return "未知状态"
 		}
 	}).
-		Map("Age").FromFunc(func(o Order) interface{} {
+		Map("Age").FromFunc(func(o Order) any {
 		duration := time.Since(o.CreatedAt)
 		if duration.Hours() < 24 {
 			return fmt.Sprintf("%.0f小时前", duration.Hours())
 		}
 		return fmt.Sprintf("%.0f天前", duration.Hours()/24)
 	}).
-		Map("IsRecent").FromFunc(func(o Order) interface{} {
+		Map("IsRecent").FromFunc(func(o Order) any {
 		return time.Since(o.CreatedAt).Hours() < 24
 	}).
 		Register()
@@ -290,41 +290,41 @@ type Employee2DTO struct {
 func init() {
 	// 配置部门安全映射
 	mapster.Config[Department, DepartmentDTO]().
-		Map("ManagerName").FromFunc(func(d Department) interface{} {
+		Map("ManagerName").FromFunc(func(d Department) any {
 		if d.Manager != nil {
 			return d.Manager.Name
 		}
 		return "无"
 	}).
-		Map("MemberCount").FromFunc(func(d Department) interface{} {
+		Map("MemberCount").FromFunc(func(d Department) any {
 		return len(d.Members)
 	}).
-		Map("ParentName").FromFunc(func(d Department) interface{} {
+		Map("ParentName").FromFunc(func(d Department) any {
 		if d.Parent != nil {
 			return d.Parent.Name
 		}
 		return "无"
 	}).
-		Map("ChildCount").FromFunc(func(d Department) interface{} {
+		Map("ChildCount").FromFunc(func(d Department) any {
 		return len(d.Children)
 	}).
 		Register()
 
 	// 配置员工安全映射
 	mapster.Config[Employee2, Employee2DTO]().
-		Map("DepartmentName").FromFunc(func(e Employee2) interface{} {
+		Map("DepartmentName").FromFunc(func(e Employee2) any {
 		if e.Department != nil {
 			return e.Department.Name
 		}
 		return "无"
 	}).
-		Map("ManagerName").FromFunc(func(e Employee2) interface{} {
+		Map("ManagerName").FromFunc(func(e Employee2) any {
 		if e.Manager != nil {
 			return e.Manager.Name
 		}
 		return "无"
 	}).
-		Map("ReportCount").FromFunc(func(e Employee2) interface{} {
+		Map("ReportCount").FromFunc(func(e Employee2) any {
 		return len(e.Reports)
 	}).
 		Register()
@@ -409,25 +409,25 @@ type ProductDisplayDTO struct {
 func init() {
 	// 配置条件映射
 	mapster.Config[Product, ProductDisplayDTO]().
-		Map("Price").FromFunc(func(p Product) interface{} {
+		Map("Price").FromFunc(func(p Product) any {
 		if p.Price > 0 {
 			return fmt.Sprintf("¥%.2f", p.Price)
 		}
 		return "价格面议"
 	}).
-		Map("Status").FromFunc(func(p Product) interface{} {
+		Map("Status").FromFunc(func(p Product) any {
 		if p.InStock {
 			return "现货"
 		}
 		return "缺货"
 	}).
-		Map("Rating").FromFunc(func(p Product) interface{} {
+		Map("Rating").FromFunc(func(p Product) any {
 		if p.ReviewCount > 0 {
 			return fmt.Sprintf("%.1f分 (%d评价)", p.Rating, p.ReviewCount)
 		}
 		return "暂无评价"
 	}).
-		Map("PopularTag").FromFunc(func(p Product) interface{} {
+		Map("PopularTag").FromFunc(func(p Product) any {
 		if p.ReviewCount >= 100 && p.Rating >= 4.5 {
 			return "热门商品"
 		} else if p.ReviewCount >= 50 && p.Rating >= 4.0 {

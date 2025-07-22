@@ -20,7 +20,7 @@ func Map[T any](src any) T {
 	if mapper := getGeneratedMapper(srcType, targetType); mapper != nil {
 		// Handle different mapper function signatures
 		switch m := mapper.(type) {
-		case func(interface{}) interface{}:
+		case func(any) any:
 			return m(src).(T)
 		default:
 			// Try to call the generic mapper using reflection
@@ -71,7 +71,7 @@ func MapTo[T any](src any, target *T) {
 }
 
 // generatedMappers stores generated mapping functions
-var generatedMappers = make(map[string]interface{})
+var generatedMappers = make(map[string]any)
 
 // RegisterGeneratedMapper registers a generated mapping function
 func RegisterGeneratedMapper[S, T any](mapper func(S) T) {
@@ -80,7 +80,7 @@ func RegisterGeneratedMapper[S, T any](mapper func(S) T) {
 }
 
 // getGeneratedMapper retrieves a generated mapper if available
-func getGeneratedMapper(srcType, targetType reflect.Type) interface{} {
+func getGeneratedMapper(srcType, targetType reflect.Type) any {
 	key := fmt.Sprintf("%s->%s", srcType.String(), targetType.String())
 	return generatedMappers[key]
 }
@@ -88,5 +88,5 @@ func getGeneratedMapper(srcType, targetType reflect.Type) interface{} {
 // ClearGeneratedMappers clears all registered generated mappers
 // This is useful for testing and benchmarking
 func ClearGeneratedMappers() {
-	generatedMappers = make(map[string]interface{})
+	generatedMappers = make(map[string]any)
 }

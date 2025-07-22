@@ -92,7 +92,7 @@ func (g *CodeGenerator) extractType(expr ast.Expr) string {
 	case *ast.SelectorExpr:
 		return fmt.Sprintf("%s.%s", g.extractType(t.X), t.Sel.Name)
 	default:
-		return "interface{}"
+		return "any"
 	}
 }
 
@@ -120,7 +120,7 @@ func init() {
 {{- range .Mappings }}
 
 // map{{ .SourceType }}To{{ .TargetType }} is a zero-reflection generated mapper
-func map{{ .SourceType }}To{{ .TargetType }}(src interface{}) interface{} {
+func map{{ .SourceType }}To{{ .TargetType }}(src any) any {
 	s := src.({{ .SourceType }})
 	return {{ .TargetType }}{
 		// TODO: Generate field mappings based on struct analysis

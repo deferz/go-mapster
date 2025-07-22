@@ -136,7 +136,7 @@ func Map[T any](src any) T {
 
     // 3. 尝试使用生成的映射器
     if mapper := getGeneratedMapper(srcType, targetType); mapper != nil {
-        if mapperFunc, ok := mapper.(func(interface{}) interface{}); ok {
+        if mapperFunc, ok := mapper.(func(any) any); ok {
             return mapperFunc(src).(T)
         }
     }
@@ -169,9 +169,9 @@ type FieldMapping struct {
     TargetField string
     MappingType MappingType
     SourceField string
-    CustomFunc  interface{}
-    Transform   interface{}
-    Condition   interface{}
+    CustomFunc  any
+    Transform   any
+    Condition   any
 }
 ```
 
@@ -271,7 +271,7 @@ if result.Type().AssignableTo(targetFieldValue.Type()) {
 } else if result.Type().ConvertibleTo(targetFieldValue.Type()) {
     targetFieldValue.Set(result.Convert(targetFieldValue.Type()))
 } else if result.Kind() == reflect.Interface && !result.IsNil() {
-    // 处理 interface{} 返回值
+    // 处理 any 返回值
     actualValue := result.Elem()
     if actualValue.Type().AssignableTo(targetFieldValue.Type()) {
         targetFieldValue.Set(actualValue)
@@ -308,7 +308,7 @@ graph LR
 **1. 映射器注册系统**：
 ```go
 // 泛型映射器注册
-var generatedMappers = make(map[string]interface{})
+var generatedMappers = make(map[string]any)
 
 func RegisterGeneratedMapper[S, T any](mapper func(S) T) {
     key := fmt.Sprintf("%T->%T", *new(S), *new(T))
@@ -318,7 +318,7 @@ func RegisterGeneratedMapper[S, T any](mapper func(S) T) {
 
 **2. 优先级查找机制**：
 ```go
-func getGeneratedMapper(srcType, targetType reflect.Type) interface{} {
+func getGeneratedMapper(srcType, targetType reflect.Type) any {
     key := fmt.Sprintf("%s->%s", srcType.String(), targetType.String())
     return generatedMappers[key]
 }
@@ -329,7 +329,7 @@ func getGeneratedMapper(srcType, targetType reflect.Type) interface{} {
 // 在 Map[T] 函数中的调用逻辑
 if mapper := getGeneratedMapper(srcType, targetType); mapper != nil {
     switch m := mapper.(type) {
-    case func(interface{}) interface{}:
+    case func(any) any:
         return m(src).(T)
     default:
         // 使用反射调用泛型函数
@@ -384,7 +384,7 @@ if !srcValue.IsValid() || !targetValue.IsValid() {
 ### 3. 函数调用安全
 ```go
 // 自定义函数调用保护
-func callCustomFunc(fn interface{}, src interface{}) reflect.Value {
+func callCustomFunc(fn any, src any) reflect.Value {
     fnValue := reflect.ValueOf(fn)
     if fnValue.Kind() != reflect.Func {
         return reflect.Value{}
@@ -701,7 +701,7 @@ graph TD
     DefaultSameNameMapping --> SameNameFieldLookup[同名字段查找]
     
     CallCustomFunc --> HandleResultType[结果类型处理]
-    HandleResultType --> InterfaceTypeCheck{interface{}类型?}
+    HandleResultType --> InterfaceTypeCheck{any类型?}
     InterfaceTypeCheck -->|是| ExtractActualValue[提取实际值]
     InterfaceTypeCheck -->|否| DirectTypeCheck[直接类型检查]
     
@@ -956,7 +956,7 @@ mapster.Config[Employee, EmployeeDTO]().
 **使用示例**:
 ```go
 mapster.Config[Node, NodeDTO]().
-    Map("ParentName").FromFunc(func(n Node) interface{} {
+    Map("ParentName").FromFunc(func(n Node) any {
         if n.Parent != nil {
             return n.Parent.Name
         }

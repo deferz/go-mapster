@@ -59,10 +59,10 @@ func TestBasicMapping(t *testing.T) {
 func TestMappingWithConfiguration(t *testing.T) {
 	// Configure mapping
 	Config[TestUser, TestUserDTO]().
-		Map("FullName").FromFunc(func(u TestUser) interface{} {
+		Map("FullName").FromFunc(func(u TestUser) any {
 		return u.FirstName + " " + u.LastName
 	}).
-		Map("AgeGroup").FromFunc(func(u TestUser) interface{} {
+		Map("AgeGroup").FromFunc(func(u TestUser) any {
 		if u.Age < 18 {
 			return "Minor"
 		} else if u.Age < 65 {

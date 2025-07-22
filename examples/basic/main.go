@@ -46,17 +46,17 @@ type ProfileDTO struct {
 func init() {
 	// Configure mapping from User to UserDTO
 	mapster.Config[User, UserDTO]().
-		Map("FullName").FromFunc(func(u User) interface{} {
+		Map("FullName").FromFunc(func(u User) any {
 		return u.FirstName + " " + u.LastName
 	}).
-		Map("AgeText").FromFunc(func(u User) interface{} {
+		Map("AgeText").FromFunc(func(u User) any {
 		return fmt.Sprintf("%d years old", u.Age)
 	}).
 		Register()
 
 	// Configure mapping from Profile to ProfileDTO
 	mapster.Config[Profile, ProfileDTO]().
-		Map("FullName").FromFunc(func(p Profile) interface{} {
+		Map("FullName").FromFunc(func(p Profile) any {
 		return p.FirstName + " " + p.LastName
 	}).
 		Register()
