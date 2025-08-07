@@ -68,7 +68,11 @@ func BenchmarkSliceMapping(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = MapSlice[BenchUserDTO](users)
+		// 使用循环进行批量映射
+		dtos := make([]BenchUserDTO, len(users))
+		for j, u := range users {
+			dtos[j] = Map[BenchUserDTO](u)
+		}
 	}
 }
 

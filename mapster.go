@@ -38,27 +38,7 @@ func Map[T any](src any) T {
 	return reflectionMap[T](src)
 }
 
-// MapSlice performs mapping from source slice to target slice
-func MapSlice[T any](src any) []T {
-	if src == nil {
-		return nil
-	}
 
-	srcValue := reflect.ValueOf(src)
-	if srcValue.Kind() != reflect.Slice {
-		panic("MapSlice: source must be a slice")
-	}
-
-	length := srcValue.Len()
-	result := make([]T, length)
-
-	for i := 0; i < length; i++ {
-		item := srcValue.Index(i).Interface()
-		result[i] = Map[T](item)
-	}
-
-	return result
-}
 
 // MapTo maps source to an existing target object
 func MapTo[T any](src any, target *T) {

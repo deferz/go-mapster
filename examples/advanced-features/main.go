@@ -156,7 +156,10 @@ func main() {
 	fmt.Println("\n3. 批量安全映射:")
 
 	// 批量映射测试
-	safeDTOs := mapster.MapSlice[EmployeeSafeDTO](company.Employees)
+	safeDTOs := make([]EmployeeSafeDTO, len(company.Employees))
+	for i, e := range company.Employees {
+		safeDTOs[i] = mapster.Map[EmployeeSafeDTO](e)
+	}
 	for i, dto := range safeDTOs {
 		fmt.Printf("员工 %d: %s %s (%s)\n", i+1, dto.FirstName, dto.LastName, dto.CompanyName)
 	}

@@ -221,7 +221,10 @@ func BenchmarkSliceMapping(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_ = mapster.MapSlice[UserDTO](users)
+			dtos := make([]UserDTO, len(users))
+			for j, u := range users {
+				dtos[j] = mapster.Map[UserDTO](u)
+			}
 		}
 	})
 

@@ -100,7 +100,10 @@ func TestSliceMapping(t *testing.T) {
 		{ID: 2, FirstName: "Jane", LastName: "Smith", Age: 25},
 	}
 
-	dtos := MapSlice[TestUserDTO](users)
+	dtos := make([]TestUserDTO, len(users))
+	for i, u := range users {
+		dtos[i] = Map[TestUserDTO](u)
+	}
 
 	if len(dtos) != len(users) {
 		t.Errorf("Expected %d DTOs, got %d", len(users), len(dtos))

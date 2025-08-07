@@ -11,7 +11,7 @@ Go Mapster 是一个高性能的对象映射库### Core Features Implemented ✅
 
 2. **Type-Safe Generic API**
    - ✅ `Map[T any](src any) T` - Primary mapping function
-   - ✅ `MapSlice[T any](src any) []T` - Slice mapping
+   
    - ✅ `MapTo[T any](src any, target *T)` - In-place mapping
 
 3. **Fluent Configuration API**
@@ -146,9 +146,7 @@ func Map[T any](src any) T {
 }
 ```
 
-#### `MapSlice[T any](src any) []T`
-**功能**: 批量映射切片
-**优化**: 预分配切片容量，避免动态扩容
+
 
 #### `MapTo[T any](src any, target *T)`
 **功能**: 映射到现有对象

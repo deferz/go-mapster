@@ -377,7 +377,10 @@ func testBatchMapping() {
 		{ID: 3, FirstName: "王", LastName: "五", Email: "wang@example.com", Age: 35},
 	}
 
-	dtos := mapster.MapSlice[UserDTO](users)
+	dtos := make([]UserDTO, len(users))
+	for i, u := range users {
+		dtos[i] = mapster.Map[UserDTO](u)
+	}
 	fmt.Printf("  批量映射 %d 个用户:\n", len(dtos))
 	for i, dto := range dtos {
 		fmt.Printf("    %d. %s%s (%d岁)\n", i+1, dto.FirstName, dto.LastName, dto.Age)

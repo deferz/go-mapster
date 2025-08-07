@@ -133,7 +133,6 @@ func main() {
 ### Core Functions
 
 - `Map[T any](src any) T` - Maps source object to target type
-- `MapSlice[T any](src any) []T` - Maps slice of objects
 - `MapTo[T any](src any, target *T)` - Maps to existing object
 
 ### Configuration API
@@ -266,7 +265,10 @@ mapster.Config[User, UserDTO]().
 
 ```go
 users := []User{user1, user2, user3}
-dtos := mapster.MapSlice[UserDTO](users)
+dtos := make([]UserDTO, len(users))
+for i, u := range users {
+    dtos[i] = mapster.Map[UserDTO](u)
+}
 ```
 
 ## Why Choose Mapster for Go?

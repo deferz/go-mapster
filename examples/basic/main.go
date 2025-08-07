@@ -112,7 +112,10 @@ func main() {
 		Password:  "password456",
 	}}
 
-	userDTOs := mapster.MapSlice[UserDTO](users)
+	userDTOs := make([]UserDTO, len(users))
+	for i, u := range users {
+		userDTOs[i] = mapster.Map[UserDTO](u)
+	}
 	fmt.Println("Slice mapping:")
 	for i, dto := range userDTOs {
 		fmt.Printf("User %d: %s (%s)\n", i+1, dto.FullName, dto.AgeText)

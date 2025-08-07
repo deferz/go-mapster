@@ -133,7 +133,6 @@ func main() {
 ### 核心函数
 
 - `Map[T any](src any) T` - 将源对象映射到目标类型
-- `MapSlice[T any](src any) []T` - 映射对象切片
 - `MapTo[T any](src any, target *T)` - 映射到现有对象
 
 ### 配置 API
@@ -266,7 +265,10 @@ mapster.Config[User, UserDTO]().
 
 ```go
 users := []User{user1, user2, user3}
-dtos := mapster.MapSlice[UserDTO](users)
+dtos := make([]UserDTO, len(users))
+for i, u := range users {
+    dtos[i] = mapster.Map[UserDTO](u)
+}
 ```
 
 ## 为什么选择 Go Mapster？
