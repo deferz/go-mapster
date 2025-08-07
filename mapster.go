@@ -38,8 +38,6 @@ func Map[T any](src any) T {
 	return reflectionMap[T](src)
 }
 
-
-
 // MapTo maps source to an existing target object
 func MapTo[T any](src any, target *T) {
 	if src == nil || target == nil {
@@ -53,7 +51,8 @@ func MapTo[T any](src any, target *T) {
 // generatedMappers stores generated mapping functions
 var generatedMappers = make(map[string]any)
 
-// RegisterGeneratedMapper registers a generated mapping function
+// RegisterGeneratedMapper registers a manually written mapping function for zero-reflection performance
+// Users can write their own mapping functions and register them for maximum performance
 func RegisterGeneratedMapper[S, T any](mapper func(S) T) {
 	key := fmt.Sprintf("%T->%T", *new(S), *new(T))
 	generatedMappers[key] = mapper

@@ -93,12 +93,12 @@ func init() {
 }
 ```
 
-### Zero-Reflection Code Generation 🚀
+### Manual Zero-Reflection Mapping 🚀
 
-For maximum performance, you can register generated mappers that avoid reflection entirely:
+For maximum performance, you can write your own mapping functions and register them to avoid reflection entirely:
 
 ```go
-// Generate optimized mapper function
+// Write your own optimized mapper function
 func mapUserToUserDTO(src User) UserDTO {
     return UserDTO{
         ID:        src.ID,
@@ -110,24 +110,25 @@ func mapUserToUserDTO(src User) UserDTO {
 }
 
 func init() {
-    // Register the generated mapper
+    // Register your manual mapper
     mapster.RegisterGeneratedMapper(mapUserToUserDTO)
 }
 
 func main() {
     user := User{ID: 1, FirstName: "John", LastName: "Doe"}
     
-    // This will automatically use the generated mapper (1.5x faster!)
+    // This will automatically use your manual mapper (1.5x faster!)
     userDTO := mapster.Map[UserDTO](user)
-    fmt.Printf("Generated mapping: %+v\n", userDTO)
+    fmt.Printf("Manual mapping: %+v\n", userDTO)
 }
 ```
 
 **Benefits**:
 - 🚀 **1.5x Performance**: Direct field access instead of reflection
 - 🛡️ **Type Safety**: Compile-time checking
-- 🔄 **Auto Fallback**: Uses reflection if no generated mapper exists
-- 🔧 **Easy Integration**: Just register the function
+- 🔄 **Auto Fallback**: Uses reflection if no manual mapper exists
+- 🔧 **Full Control**: You write the mapping logic exactly as needed
+- 🎯 **Complex Logic**: Support any custom transformation logic
 
 ## API Reference
 
@@ -377,27 +378,20 @@ Mapster for Go is optimized for high-performance scenarios:
 ## Roadmap
 
 ### Current Status ✅
-- **🚀 Zero-Reflection Code Generation**: 1.5x performance boost with generated mappers
-- **Basic reflection-based mapping**: Automatic field matching
-- **Fluent configuration API**: Chainable configuration interface
-- **Custom mapping functions**: Complex logic support
-- **Slice mapping**: Batch object processing
-- **Basic nested object mapping**: Automatic struct-in-struct mapping
+- **🚀 Manual Zero-Reflection Mapping**: 1.5x performance boost with user-written mappers
+- **📊 Deep Path Resolution**: Complete `FromPath("Address.Street")` implementation with dot notation
+- **🔄 Circular Reference Detection**: Safe handling of complex object graphs with pointer tracking
+- **🎭 Conditional Mapping**: `When()` conditions and `Ignore()` field exclusion
+- **🔧 Transform Mapping**: `Transform()` value conversion functions
 - **⏰ Smart Time Conversion**: Automatic int64 ↔ time.Time conversion with configurable behavior
-
-### Enhanced Features in Development 🚧
-- **Deep path mapping**: Complete `FromPath("Address.Street")` implementation
-- **Flattening mappings**: Smart nested-to-flat structure mapping
-- **Circular reference handling**: Safe mapping without infinite recursion
-- **Dynamic field mapping**: Runtime field discovery and mapping
-- **Validation integration**: Data validation during mapping process
-- **Advanced configuration options**: Conditional mapping, field ignoring, etc.
+- **🔧 Fluent Configuration API**: Chainable configuration interface
+- **🎯 Custom Mapping Functions**: Complex logic support with type safety
+- **📦 Slice Mapping**: Batch object processing capabilities
+- **🛡️ Type-Safe Generic API**: Compile-time type checking with Go 1.18+ generics
 
 ### Future Plans 📋
-- **Compile-time code generation tools**: Automated mapper generation
+- **Code generation tools**: Compile-time mapping code generation
 - **IDE plugin support**: VS Code extensions
-- **Performance analysis tools**: Mapping performance monitoring
-- **Community contribution templates**: Standardized contribution workflow
 
 Want to contribute? Check out our [Contributing Guidelines](#contributing)!
 
