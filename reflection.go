@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 )
 
 // reflectionMap performs mapping using reflection
@@ -238,6 +239,12 @@ func mapReflect(srcValue, targetValue reflect.Value) {
 		mapSliceToSlice(srcValue, targetValue)
 
 	default:
+		// Try custom type conversions first
+		if converted := tryCustomTypeConversion(srcValue, targetType); converted.IsValid() {
+			targetValue.Set(converted)
+			return
+		}
+
 		// Try direct assignment for compatible types
 		if srcValue.Type().ConvertibleTo(targetType) {
 			targetValue.Set(srcValue.Convert(targetType))
@@ -421,4 +428,64 @@ func mapReflectWithCircularDetection(srcValue, targetValue reflect.Value, detect
 
 	// Perform regular mapping
 	mapReflect(srcValue, targetValue)
+}
+
+// tryCustomTypeConversion attempts to convert between types that are not directly convertible
+// but have logical conversion rules (e.g., int64 <-> time.Time)
+func tryCustomTypeConversion(srcValue reflect.Value, targetType reflect.Type) reflect.Value {
+	if !srcValue.IsValid() {
+		return reflect.Value{}
+	}
+
+	// Check if time conversion is enabled
+	if !globalConfig.EnableTimeConversion {
+		return reflect.Value{}
+	}
+
+	srcType := srcValue.Type()
+
+	// int64 -> time.Time conversion
+	if srcType.Kind() == reflect.Int64 && targetType == reflect.TypeOf(time.Time{}) {
+		if srcValue.CanInt() {
+			timestamp := srcValue.Int()
+			// Handle different timestamp formats
+			var convertedTime time.Time
+			if timestamp > 1e15 { // Likely nanoseconds (16+ digits)
+				convertedTime = time.Unix(0, timestamp)
+			} else if timestamp > 1e12 { // Likely milliseconds (13+ digits)
+				convertedTime = time.Unix(timestamp/1000, (timestamp%1000)*int64(time.Millisecond))
+			} else { // Likely seconds (10-12 digits)
+				convertedTime = time.Unix(timestamp, 0)
+			}
+			return reflect.ValueOf(convertedTime)
+		}
+	}
+
+	// time.Time -> int64 conversion
+	if srcType == reflect.TypeOf(time.Time{}) && targetType.Kind() == reflect.Int64 {
+		if timeValue, ok := srcValue.Interface().(time.Time); ok {
+			// Convert to Unix timestamp (seconds since epoch)
+			timestamp := timeValue.Unix()
+			return reflect.ValueOf(timestamp)
+		}
+	}
+
+	// int -> time.Time conversion
+	if srcType.Kind() == reflect.Int && targetType == reflect.TypeOf(time.Time{}) {
+		if srcValue.CanInt() {
+			timestamp := srcValue.Int()
+			convertedTime := time.Unix(timestamp, 0)
+			return reflect.ValueOf(convertedTime)
+		}
+	}
+
+	// time.Time -> int conversion
+	if srcType == reflect.TypeOf(time.Time{}) && targetType.Kind() == reflect.Int {
+		if timeValue, ok := srcValue.Interface().(time.Time); ok {
+			timestamp := int(timeValue.Unix())
+			return reflect.ValueOf(timestamp)
+		}
+	}
+
+	return reflect.Value{}
 }

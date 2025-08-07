@@ -37,6 +37,18 @@ type ConfigBuilder[S, T any] struct {
 	definition *MappingDefinition
 }
 
+// GlobalConfig holds global configuration options for the mapster library
+type GlobalConfig struct {
+	// EnableTimeConversion enables automatic conversion between int64 and time.Time
+	// Default: true
+	EnableTimeConversion bool
+}
+
+// globalConfig holds the global configuration
+var globalConfig = GlobalConfig{
+	EnableTimeConversion: true, // 默认启用时间转换
+}
+
 // globalConfigs stores all registered mapping configurations
 var globalConfigs = make(map[string]*MappingDefinition)
 
@@ -204,4 +216,24 @@ func GetMappingConfig(sourceType, targetType reflect.Type) *MappingDefinition {
 	}
 
 	return nil
+}
+
+// SetGlobalConfig sets the global configuration options
+func SetGlobalConfig(config GlobalConfig) {
+	globalConfig = config
+}
+
+// GetGlobalConfig returns the current global configuration
+func GetGlobalConfig() GlobalConfig {
+	return globalConfig
+}
+
+// EnableTimeConversion enables or disables automatic time conversion
+func EnableTimeConversion(enable bool) {
+	globalConfig.EnableTimeConversion = enable
+}
+
+// IsTimeConversionEnabled returns whether time conversion is currently enabled
+func IsTimeConversionEnabled() bool {
+	return globalConfig.EnableTimeConversion
 }

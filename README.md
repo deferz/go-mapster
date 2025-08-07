@@ -14,6 +14,7 @@ A high-performance object mapping library for Go, inspired by .NET's Mapster. Th
 - **📊 Deep Path Resolution**: Access nested object properties using dot notation (e.g., `Company.Address.City`)
 - **🔄 Circular Reference Detection**: Safe handling of complex object graphs with circular references
 - **📦 Batch Processing**: Efficient slice and array mapping capabilities
+- **⏰ Smart Time Conversion**: Automatic int64 ↔ time.Time conversion with configurable behavior
 
 ## Performance
 
@@ -147,6 +148,13 @@ func main() {
 - `Ignore(field)` - Ignores specific field
 - `Register()` - Registers the configuration
 
+### Time Conversion API
+
+- `EnableTimeConversion(bool)` - Enable/disable automatic time conversion
+- `IsTimeConversionEnabled()` - Check if time conversion is enabled
+- `SetGlobalConfig(GlobalConfig)` - Set global configuration options
+- `GetGlobalConfig()` - Get current global configuration
+
 ## Examples
 
 ### Field Mapping
@@ -271,6 +279,78 @@ for i, u := range users {
 }
 ```
 
+### Time Conversion
+
+Automatic conversion between `int64` timestamps and `time.Time`:
+
+```go
+// Database model with int64 timestamps
+type UserModel struct {
+    ID        int64
+    Name      string
+    CreatedAt int64  // Unix timestamp
+    UpdatedAt int64  // Unix timestamp
+}
+
+// API response with time.Time
+type UserResponse struct {
+    ID        int64
+    Name      string
+    CreatedAt time.Time
+    UpdatedAt time.Time
+}
+
+func main() {
+    userModel := UserModel{
+        ID:        1,
+        Name:      "John Doe",
+        CreatedAt: time.Now().Unix(),
+        UpdatedAt: time.Now().Unix(),
+    }
+
+    // Automatic conversion (enabled by default)
+    userResponse := mapster.Map[UserResponse](userModel)
+    fmt.Printf("CreatedAt: %s\n", userResponse.CreatedAt.Format("2006-01-02 15:04:05"))
+
+    // Disable time conversion for performance
+    mapster.EnableTimeConversion(false)
+    userResponse2 := mapster.Map[UserResponse](userModel)
+    fmt.Printf("CreatedAt (disabled): %s\n", userResponse2.CreatedAt.Format("2006-01-02 15:04:05"))
+}
+```
+
+#### Time Conversion Configuration
+
+```go
+// Enable/disable globally
+mapster.EnableTimeConversion(true)  // Default: true
+mapster.EnableTimeConversion(false) // Disable for performance
+
+// Check current status
+enabled := mapster.IsTimeConversionEnabled()
+
+// Use global configuration
+mapster.SetGlobalConfig(mapster.GlobalConfig{
+    EnableTimeConversion: false,
+})
+```
+
+#### Custom Configuration Priority
+
+Custom field mappings take priority over global time conversion:
+
+```go
+// Custom configuration for specific field
+mapster.Config[UserModel, UserResponse]().
+    Map("CreatedAt").FromFunc(func(src UserModel) any {
+        return time.Date(2020, 1, 1, 12, 0, 0, 0, time.UTC)
+    }).
+    Register()
+
+// CreatedAt uses custom config, UpdatedAt uses global time conversion
+userResponse := mapster.Map[UserResponse](userModel)
+```
+
 ## Why Choose Mapster for Go?
 
 - 🚀 **Zero Learning Curve**: If you know Go structs, you know Mapster
@@ -303,6 +383,7 @@ Mapster for Go is optimized for high-performance scenarios:
 - **Custom mapping functions**: Complex logic support
 - **Slice mapping**: Batch object processing
 - **Basic nested object mapping**: Automatic struct-in-struct mapping
+- **⏰ Smart Time Conversion**: Automatic int64 ↔ time.Time conversion with configurable behavior
 
 ### Enhanced Features in Development 🚧
 - **Deep path mapping**: Complete `FromPath("Address.Street")` implementation
