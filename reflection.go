@@ -260,6 +260,12 @@ func mapReflect(srcValue, targetValue reflect.Value) {
 
 // mapStructToStruct maps fields from source struct to target struct
 func mapStructToStruct(srcValue, targetValue reflect.Value) {
+	// 检查是否启用了自动扁平化
+	if globalConfig.AutoFlatten.Enabled {
+		mapStructToStructWithAutoFlatten(srcValue, targetValue, &globalConfig.AutoFlatten)
+		return
+	}
+
 	srcType := srcValue.Type()
 	targetType := targetValue.Type()
 

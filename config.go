@@ -42,11 +42,22 @@ type GlobalConfig struct {
 	// EnableTimeConversion enables automatic conversion between int64 and time.Time
 	// Default: true
 	EnableTimeConversion bool
+	
+	// AutoFlatten enables automatic flattening of nested structs during mapping
+	// Default: false
+	AutoFlatten AutoFlattenConfig
 }
 
 // globalConfig holds the global configuration
 var globalConfig = GlobalConfig{
 	EnableTimeConversion: true, // 默认启用时间转换
+	AutoFlatten: AutoFlattenConfig{
+		Enabled:         false, // 默认禁用自动扁平化
+		MaxDepth:        3,
+		ConflictStrategy: KeepFirst,
+		UsePrefix:       false,
+		PrefixSeparator: "_",
+	},
 }
 
 // globalConfigs stores all registered mapping configurations
@@ -236,4 +247,71 @@ func EnableTimeConversion(enable bool) {
 // IsTimeConversionEnabled returns whether time conversion is currently enabled
 func IsTimeConversionEnabled() bool {
 	return globalConfig.EnableTimeConversion
+}
+
+// ===== 自动扁平化全局配置函数 =====
+
+// EnableAutoFlatten enables automatic flattening globally
+func EnableAutoFlatten() {
+	globalConfig.AutoFlatten.Enabled = true
+}
+
+// DisableAutoFlatten disables automatic flattening globally
+func DisableAutoFlatten() {
+	globalConfig.AutoFlatten.Enabled = false
+}
+
+// IsAutoFlattenEnabled returns whether auto flattening is currently enabled
+func IsAutoFlattenEnabled() bool {
+	return globalConfig.AutoFlatten.Enabled
+}
+
+// SetAutoFlattenMaxDepth sets the maximum depth for auto flattening
+func SetAutoFlattenMaxDepth(depth int) {
+	globalConfig.AutoFlatten.MaxDepth = depth
+}
+
+// GetAutoFlattenMaxDepth returns the current max depth for auto flattening
+func GetAutoFlattenMaxDepth() int {
+	return globalConfig.AutoFlatten.MaxDepth
+}
+
+// SetAutoFlattenConflictStrategy sets the conflict resolution strategy
+func SetAutoFlattenConflictStrategy(strategy ConflictStrategy) {
+	globalConfig.AutoFlatten.ConflictStrategy = strategy
+}
+
+// GetAutoFlattenConflictStrategy returns the current conflict strategy
+func GetAutoFlattenConflictStrategy() ConflictStrategy {
+	return globalConfig.AutoFlatten.ConflictStrategy
+}
+
+// SetAutoFlattenUsePrefix sets whether to use prefixes for flattened fields
+func SetAutoFlattenUsePrefix(usePrefix bool) {
+	globalConfig.AutoFlatten.UsePrefix = usePrefix
+}
+
+// IsAutoFlattenUsePrefix returns whether prefixes are currently used
+func IsAutoFlattenUsePrefix() bool {
+	return globalConfig.AutoFlatten.UsePrefix
+}
+
+// SetAutoFlattenPrefixSeparator sets the prefix separator for flattened fields
+func SetAutoFlattenPrefixSeparator(separator string) {
+	globalConfig.AutoFlatten.PrefixSeparator = separator
+}
+
+// GetAutoFlattenPrefixSeparator returns the current prefix separator
+func GetAutoFlattenPrefixSeparator() string {
+	return globalConfig.AutoFlatten.PrefixSeparator
+}
+
+// SetAutoFlattenConfig sets the complete auto flatten configuration
+func SetAutoFlattenConfig(config AutoFlattenConfig) {
+	globalConfig.AutoFlatten = config
+}
+
+// GetAutoFlattenConfig returns the current auto flatten configuration
+func GetAutoFlattenConfig() AutoFlattenConfig {
+	return globalConfig.AutoFlatten
 }
