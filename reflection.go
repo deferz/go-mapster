@@ -206,6 +206,12 @@ func mapReflect(srcValue, targetValue reflect.Value) {
 	srcType := srcValue.Type()
 	targetType := targetValue.Type()
 
+	// Try type alias conversion first (before struct-to-struct mapping)
+	if converted := tryTypeAliasConversion(srcValue, targetType); converted.IsValid() {
+		targetValue.Set(converted)
+		return
+	}
+
 	// Handle different type combinations
 	switch {
 	case srcType == targetType:
@@ -239,7 +245,7 @@ func mapReflect(srcValue, targetValue reflect.Value) {
 		mapSliceToSlice(srcValue, targetValue)
 
 	default:
-		// Try custom type conversions first
+		// Try custom type conversions
 		if converted := tryCustomTypeConversion(srcValue, targetType); converted.IsValid() {
 			targetValue.Set(converted)
 			return
@@ -428,6 +434,38 @@ func mapReflectWithCircularDetection(srcValue, targetValue reflect.Value, detect
 
 	// Perform regular mapping
 	mapReflect(srcValue, targetValue)
+}
+
+// tryTypeAliasConversion attempts to convert between type aliases and their underlying types
+func tryTypeAliasConversion(srcValue reflect.Value, targetType reflect.Type) reflect.Value {
+	if !srcValue.IsValid() {
+		return reflect.Value{}
+	}
+
+	srcType := srcValue.Type()
+
+	// Handle type alias conversions
+	// For type aliases, we need to check if the underlying types are the same
+	// and if they are convertible to each other
+
+	// Try direct conversion first (this handles both directions)
+	if srcValue.Type().ConvertibleTo(targetType) {
+		return srcValue.Convert(targetType)
+	}
+
+	// Handle pointer type aliases
+	if srcType.Kind() == reflect.Ptr && targetType.Kind() == reflect.Ptr {
+		if srcType.Elem().ConvertibleTo(targetType.Elem()) {
+			if !srcValue.IsNil() {
+				convertedElem := srcValue.Elem().Convert(targetType.Elem())
+				result := reflect.New(targetType.Elem())
+				result.Elem().Set(convertedElem)
+				return result
+			}
+		}
+	}
+
+	return reflect.Value{}
 }
 
 // tryCustomTypeConversion attempts to convert between types that are not directly convertible
