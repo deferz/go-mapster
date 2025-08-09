@@ -3,6 +3,8 @@ package mapper
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/deferz/go-mapster/internal/cache"
 )
 
 // mapStruct handles mapping from struct to struct
@@ -18,38 +20,50 @@ func mapStruct(src, dst reflect.Value) error {
 		return fmt.Errorf("target value is not a struct, but %s", dst.Kind())
 	}
 
-	// Get target struct type information
+	// Get source and target type information from cache
+	typeCache := cache.GetGlobalCache()
+	srcType := src.Type()
 	dstType := dst.Type()
 
-	// Iterate through all fields of the target struct
-	for i := 0; i < dst.NumField(); i++ {
+	srcTypeInfo := typeCache.Get(srcType)
+	if srcTypeInfo == nil {
+		// If not in cache, build and store it
+		srcTypeInfo = cache.BuildTypeInfo(srcType)
+		typeCache.Store(srcType, srcTypeInfo)
+	}
+
+	dstTypeInfo := typeCache.Get(dstType)
+	if dstTypeInfo == nil {
+		// If not in cache, build and store it
+		dstTypeInfo = cache.BuildTypeInfo(dstType)
+		typeCache.Store(dstType, dstTypeInfo)
+	}
+
+	// Use cached field information for target struct
+	for _, fieldInfo := range dstTypeInfo.Fields {
 		// Get target field
-		dstField := dst.Field(i)
-		dstFieldType := dstType.Field(i)
+		dstField := dst.Field(fieldInfo.Index)
 
-		// Skip unexported fields (private fields)
-		if !dstField.CanSet() {
-			continue
-		}
-
+		// Field is already verified as exported in BuildTypeInfo
 		// Get field name
-		fieldName := dstFieldType.Name
+		fieldName := fieldInfo.Name
 
-		// Find corresponding field in source struct
-		srcField := findSourceField(src, fieldName)
-		if !srcField.IsValid() {
+		// Find corresponding field in source struct using cached field map
+		srcFieldInfo, exists := srcTypeInfo.FieldsMap[fieldName]
+		if exists {
+			srcField := src.Field(srcFieldInfo.Index)
+			// Recursively map field value
+			if err := MapValue(srcField, dstField); err != nil {
+				return fmt.Errorf("failed to map field %s: %w", fieldName, err)
+			}
+		} else {
 			// Try to find in embedded fields
 			if embeddedField, found := findFieldInEmbedded(src, fieldName); found {
-				srcField = embeddedField
-			} else {
-				// If field not found, skip (keep original value in target field)
-				continue
+				if err := MapValue(embeddedField, dstField); err != nil {
+					return fmt.Errorf("failed to map field %s from embedded: %w", fieldName, err)
+				}
 			}
-		}
-
-		// Recursively map field value
-		if err := MapValue(srcField, dstField); err != nil {
-			return fmt.Errorf("failed to map field %s: %w", fieldName, err)
+			// If field not found, skip (keep original value in target field)
 		}
 	}
 

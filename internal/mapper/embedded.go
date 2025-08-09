@@ -2,6 +2,8 @@ package mapper
 
 import (
 	"reflect"
+
+	"github.com/deferz/go-mapster/internal/cache"
 )
 
 // processEmbeddedFields processes embedded fields in structs
@@ -9,6 +11,23 @@ import (
 func processEmbeddedFields(src, dst reflect.Value) error {
 	srcType := src.Type()
 	dstType := dst.Type()
+
+	// Get type information from cache
+	typeCache := cache.GetGlobalCache()
+
+	srcTypeInfo := typeCache.Get(srcType)
+	if srcTypeInfo == nil {
+		// If not in cache, build and store it
+		srcTypeInfo = cache.BuildTypeInfo(srcType)
+		typeCache.Store(srcType, srcTypeInfo)
+	}
+
+	dstTypeInfo := typeCache.Get(dstType)
+	if dstTypeInfo == nil {
+		// If not in cache, build and store it
+		dstTypeInfo = cache.BuildTypeInfo(dstType)
+		typeCache.Store(dstType, dstTypeInfo)
+	}
 
 	// Iterate through all fields in source struct to find embedded fields
 	for i := 0; i < src.NumField(); i++ {
@@ -49,6 +68,16 @@ func processEmbeddedFields(src, dst reflect.Value) error {
 func findFieldInEmbedded(value reflect.Value, fieldName string) (reflect.Value, bool) {
 	valueType := value.Type()
 
+	// Get type information from cache
+	typeCache := cache.GetGlobalCache()
+	typeInfo := typeCache.Get(valueType)
+
+	if typeInfo == nil {
+		// If not in cache, build and store it
+		typeInfo = cache.BuildTypeInfo(valueType)
+		typeCache.Store(valueType, typeInfo)
+	}
+
 	// Iterate through all fields
 	for i := 0; i < value.NumField(); i++ {
 		field := valueType.Field(i)
@@ -67,6 +96,7 @@ func findFieldInEmbedded(value reflect.Value, fieldName string) (reflect.Value, 
 
 			// Look for target field in embedded field
 			if fieldValue.Kind() == reflect.Struct {
+				// Use direct field access for better performance
 				if targetField := fieldValue.FieldByName(fieldName); targetField.IsValid() {
 					return targetField, true
 				}

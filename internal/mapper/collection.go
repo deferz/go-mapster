@@ -3,6 +3,8 @@ package mapper
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/deferz/go-mapster/internal/cache"
 )
 
 // mapCollection handles mapping of slices and arrays
@@ -21,6 +23,25 @@ func mapCollection(src, dst reflect.Value) error {
 		return fmt.Errorf("target value is not a slice or array, but %s", dst.Kind())
 	}
 
+	// Get type information from cache
+	typeCache := cache.GetGlobalCache()
+	srcType := src.Type()
+	dstType := dst.Type()
+
+	srcTypeInfo := typeCache.Get(srcType)
+	if srcTypeInfo == nil {
+		// If not in cache, build and store it
+		srcTypeInfo = cache.BuildTypeInfo(srcType)
+		typeCache.Store(srcType, srcTypeInfo)
+	}
+
+	dstTypeInfo := typeCache.Get(dstType)
+	if dstTypeInfo == nil {
+		// If not in cache, build and store it
+		dstTypeInfo = cache.BuildTypeInfo(dstType)
+		typeCache.Store(dstType, dstTypeInfo)
+	}
+
 	// Get source length
 	srcLen := src.Len()
 
@@ -28,7 +49,7 @@ func mapCollection(src, dst reflect.Value) error {
 	var mapLen int
 
 	// Create new target value based on target type
-	if dst.Kind() == reflect.Slice {
+	if dstTypeInfo.IsCollection && dst.Kind() == reflect.Slice {
 		// Slice: Create new slice with same length as source
 		dstVal = reflect.MakeSlice(dst.Type(), srcLen, srcLen)
 		mapLen = srcLen
@@ -73,8 +94,26 @@ func mapMap(src, dst reflect.Value) error {
 		return fmt.Errorf("target value is not a Map, but %s", dst.Kind())
 	}
 
-	// Get target Map type information
+	// Get type information from cache
+	typeCache := cache.GetGlobalCache()
+	srcType := src.Type()
 	dstType := dst.Type()
+
+	srcTypeInfo := typeCache.Get(srcType)
+	if srcTypeInfo == nil {
+		// If not in cache, build and store it
+		srcTypeInfo = cache.BuildTypeInfo(srcType)
+		typeCache.Store(srcType, srcTypeInfo)
+	}
+
+	dstTypeInfo := typeCache.Get(dstType)
+	if dstTypeInfo == nil {
+		// If not in cache, build and store it
+		dstTypeInfo = cache.BuildTypeInfo(dstType)
+		typeCache.Store(dstType, dstTypeInfo)
+	}
+
+	// Get target Map type information from cached type info
 	dstKeyType := dstType.Key()
 	dstElemType := dstType.Elem()
 
@@ -88,7 +127,12 @@ func mapMap(src, dst reflect.Value) error {
 
 		// Create target key
 		dstKey := reflect.New(dstKeyType).Elem()
-		if err := MapValue(key, dstKey); err != nil {
+		// Try direct key conversion first
+		if key.Type() == dstKeyType {
+			dstKey.Set(key)
+		} else if key.Type().ConvertibleTo(dstKeyType) {
+			dstKey.Set(key.Convert(dstKeyType))
+		} else if err := MapValue(key, dstKey); err != nil {
 			return fmt.Errorf("failed to map Map key: %w", err)
 		}
 

@@ -3,16 +3,18 @@ package mapper
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/deferz/go-mapster/internal/cache"
 )
 
-// ValueConverter handles type conversion (first built-in aliases/time, then support for registration)
+// ValueConverter defines an interface for custom value conversion
 type ValueConverter interface {
-	Convert(from reflect.Value, to reflect.Type) (reflect.Value, bool)
+	Convert(src any) (any, error)
 }
 
-// FieldResolver handles field resolution (supports custom resolvers)
+// FieldResolver defines an interface for custom field name resolution
 type FieldResolver interface {
-	Resolve(value reflect.Value, fieldName string) (reflect.Value, bool)
+	ResolveField(srcType reflect.Type, dstType reflect.Type, fieldName string) (string, error)
 }
 
 // MapValue is the core mapping function responsible for mapping source value to target value
@@ -23,28 +25,16 @@ type FieldResolver interface {
 // Returns:
 //   - error: Returns an error if mapping fails
 func MapValue(src, dst reflect.Value) error {
-	// Handle nil source value
+	// Check for nil source
 	if !src.IsValid() {
 		return fmt.Errorf("source value is invalid")
 	}
 
-	// Ensure target value can be set
+	// Check if target is settable
 	if !dst.CanSet() {
-		return fmt.Errorf("target value cannot be set")
+		return fmt.Errorf("target value is not settable")
 	}
 
-	// Handle pointer type source value
-	if src.Kind() == reflect.Ptr {
-		if src.IsNil() {
-			// If source pointer is nil, set target to zero value
-			dst.Set(reflect.Zero(dst.Type()))
-			return nil
-		}
-		// Dereference pointer
-		src = src.Elem()
-	}
-
-	// Get source and target types
 	srcType := src.Type()
 	dstType := dst.Type()
 
@@ -54,18 +44,33 @@ func MapValue(src, dst reflect.Value) error {
 		return nil
 	}
 
-	// Choose mapping strategy based on target type
-	switch dst.Kind() {
-	case reflect.Struct:
+	// Get type information from cache for fast type checking
+	typeCache := cache.GetGlobalCache()
+
+	// Get or build source type info
+	srcTypeInfo := typeCache.Get(srcType)
+	if srcTypeInfo == nil {
+		srcTypeInfo = cache.BuildTypeInfo(srcType)
+		typeCache.Store(srcType, srcTypeInfo)
+	}
+
+	// Get or build destination type info
+	dstTypeInfo := typeCache.Get(dstType)
+	if dstTypeInfo == nil {
+		dstTypeInfo = cache.BuildTypeInfo(dstType)
+		typeCache.Store(dstType, dstTypeInfo)
+	}
+
+	// Choose mapping strategy based on cached type information
+	if dstTypeInfo.IsStruct {
 		return mapStruct(src, dst)
-	case reflect.Slice, reflect.Array:
-		// Use mapCollection for both slices and arrays
+	} else if dstTypeInfo.IsCollection {
 		return mapCollection(src, dst)
-	case reflect.Map:
+	} else if dstTypeInfo.IsMap {
 		return mapMap(src, dst)
-	case reflect.Ptr:
+	} else if dst.Kind() == reflect.Ptr {
 		return mapPointer(src, dst)
-	default:
+	} else {
 		// Try basic type conversion
 		return mapBasicType(src, dst)
 	}
@@ -76,22 +81,37 @@ func mapBasicType(src, dst reflect.Value) error {
 	srcType := src.Type()
 	dstType := dst.Type()
 
-	// Check if direct conversion is possible
-	if src.Type().ConvertibleTo(dst.Type()) {
-		dst.Set(src.Convert(dst.Type()))
+	// Handle nil pointers
+	if srcType.Kind() == reflect.Ptr && src.IsNil() {
+		return nil // Skip mapping for nil pointers
+	}
+
+	// Try direct conversion
+	if srcType.ConvertibleTo(dstType) {
+		dst.Set(src.Convert(dstType))
 		return nil
 	}
 
-	return fmt.Errorf("cannot convert type %s to %s", srcType, dstType)
+	return fmt.Errorf("cannot convert from %s to %s", srcType, dstType)
 }
 
-// mapPointer handles mapping to pointer types
+// mapPointer handles pointer type mapping
 func mapPointer(src, dst reflect.Value) error {
-	// Create new pointer of target type if nil
+	// If destination is nil pointer, create a new instance
 	if dst.IsNil() {
 		dst.Set(reflect.New(dst.Type().Elem()))
 	}
 
-	// Map to the value pointed by the pointer
-	return MapValue(src, dst.Elem())
+	// If source is nil, do nothing
+	if src.Kind() == reflect.Ptr && src.IsNil() {
+		return nil
+	}
+
+	// If source is not a pointer, map to the pointer's element
+	if src.Kind() != reflect.Ptr {
+		return MapValue(src, dst.Elem())
+	}
+
+	// Both are pointers, map their elements
+	return MapValue(src.Elem(), dst.Elem())
 }
