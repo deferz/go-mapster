@@ -13,21 +13,10 @@ func processEmbeddedFields(src, dst reflect.Value) error {
 	dstType := dst.Type()
 
 	// Get type information from cache
-	typeCache := cache.GetGlobalCache()
-
-	srcTypeInfo := typeCache.Get(srcType)
-	if srcTypeInfo == nil {
-		// If not in cache, build and store it
-		srcTypeInfo = cache.BuildTypeInfo(srcType)
-		typeCache.Store(srcType, srcTypeInfo)
-	}
-
-	dstTypeInfo := typeCache.Get(dstType)
-	if dstTypeInfo == nil {
-		// If not in cache, build and store it
-		dstTypeInfo = cache.BuildTypeInfo(dstType)
-		typeCache.Store(dstType, dstTypeInfo)
-	}
+	// 使用 GetOrCreate 方法获取或创建类型信息
+	// 注意：我们不需要显式地使用类型信息，因为在 MapValue 中已经处理了类型信息
+	_ = cache.GetGlobalCache().GetOrCreate(srcType)
+	_ = cache.GetGlobalCache().GetOrCreate(dstType)
 
 	// Iterate through all fields in source struct to find embedded fields
 	for i := 0; i < src.NumField(); i++ {
@@ -70,23 +59,85 @@ func findFieldInEmbedded(value reflect.Value, fieldName string) (reflect.Value, 
 
 	// Get type information from cache
 	typeCache := cache.GetGlobalCache()
-	typeInfo := typeCache.Get(valueType)
+	typeInfo := typeCache.GetOrCreate(valueType)
 
-	if typeInfo == nil {
-		// If not in cache, build and store it
-		typeInfo = cache.BuildTypeInfo(valueType)
-		typeCache.Store(valueType, typeInfo)
+	// 使用缓存的嵌入字段映射
+	if embeddedFieldInfo, exists := typeInfo.EmbeddedFieldsMap[fieldName]; exists {
+		// 根据缓存的路径获取字段值
+		fieldValue := value
+
+		// 遍历嵌入路径
+		for _, idx := range embeddedFieldInfo.EmbeddedPath {
+			// 处理指针类型
+			if fieldValue.Kind() == reflect.Ptr {
+				// 如果是 nil 指针，初始化它
+				if fieldValue.IsNil() {
+					fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
+				}
+				fieldValue = fieldValue.Elem()
+			}
+
+			// 获取下一级字段
+			fieldValue = fieldValue.Field(idx)
+		}
+
+		return fieldValue, true
 	}
 
-	// Iterate through all fields
+	// 如果在缓存中没有找到，则使用递归方式查找
+	// 这是一个后备方案，大多数情况下应该使用缓存
+	for _, anonField := range typeInfo.AnonymousFields {
+		// 获取匿名字段的值
+		anonValue := value
+
+		// 遍历嵌入路径
+		for _, idx := range anonField.Index {
+			// 处理指针类型
+			if anonValue.Kind() == reflect.Ptr {
+				if anonValue.IsNil() {
+					// 如果是 nil 指针，跳过这个匿名字段
+					anonValue = reflect.Value{}
+					break
+				}
+				anonValue = anonValue.Elem()
+			}
+
+			if !anonValue.IsValid() {
+				break
+			}
+
+			anonValue = anonValue.Field(idx)
+		}
+
+		// 如果匿名字段有效
+		if anonValue.IsValid() {
+			// 处理指针类型
+			if anonValue.Kind() == reflect.Ptr {
+				if anonValue.IsNil() {
+					continue
+				}
+				anonValue = anonValue.Elem()
+			}
+
+			// 在匿名字段中查找目标字段
+			if anonValue.Kind() == reflect.Struct {
+				// 直接使用字段名称访问以提高性能
+				if targetField := anonValue.FieldByName(fieldName); targetField.IsValid() {
+					return targetField, true
+				}
+			}
+		}
+	}
+
+	// 作为最后的手段，使用传统方式遍历所有字段
 	for i := 0; i < value.NumField(); i++ {
 		field := valueType.Field(i)
 
-		// If it's an embedded field
+		// 如果是匿名字段
 		if field.Anonymous {
 			fieldValue := value.Field(i)
 
-			// Handle pointer type embedded fields
+			// 处理指针类型的匿名字段
 			if fieldValue.Kind() == reflect.Ptr {
 				if fieldValue.IsNil() {
 					continue
@@ -94,14 +145,14 @@ func findFieldInEmbedded(value reflect.Value, fieldName string) (reflect.Value, 
 				fieldValue = fieldValue.Elem()
 			}
 
-			// Look for target field in embedded field
+			// 在匿名字段中查找目标字段
 			if fieldValue.Kind() == reflect.Struct {
-				// Use direct field access for better performance
+				// 使用直接字段访问以提高性能
 				if targetField := fieldValue.FieldByName(fieldName); targetField.IsValid() {
 					return targetField, true
 				}
 
-				// Recursively search deeper embedded fields
+				// 递归搜索更深层的嵌入字段
 				if found, ok := findFieldInEmbedded(fieldValue, fieldName); ok {
 					return found, true
 				}

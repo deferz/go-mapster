@@ -47,19 +47,8 @@ func MapValue(src, dst reflect.Value) error {
 	// Get type information from cache for fast type checking
 	typeCache := cache.GetGlobalCache()
 
-	// Get or build source type info
-	srcTypeInfo := typeCache.Get(srcType)
-	if srcTypeInfo == nil {
-		srcTypeInfo = cache.BuildTypeInfo(srcType)
-		typeCache.Store(srcType, srcTypeInfo)
-	}
-
-	// Get or build destination type info
-	dstTypeInfo := typeCache.Get(dstType)
-	if dstTypeInfo == nil {
-		dstTypeInfo = cache.BuildTypeInfo(dstType)
-		typeCache.Store(dstType, dstTypeInfo)
-	}
+	// Get or build type info
+	dstTypeInfo := typeCache.GetOrCreate(dstType)
 
 	// Choose mapping strategy based on cached type information
 	if dstTypeInfo.IsStruct {

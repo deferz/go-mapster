@@ -60,10 +60,7 @@ func BenchmarkManualMapping(b *testing.B) {
 }
 
 // go-mapster 基准测试
-func init() {
-	// 注册 go-mapster 映射关系
-	mapster.NewMapperConfig[SimpleSource, SimpleTarget]().Register()
-}
+// 注意：映射现在在调用 Map 和 MapTo 时自动注册
 
 func BenchmarkGoMapster(b *testing.B) {
 	src := getSimpleSource()

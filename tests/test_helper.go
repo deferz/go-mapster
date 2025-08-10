@@ -1,10 +1,7 @@
 package tests
 
 import (
-	"testing"
 	"time"
-
-	mapster "github.com/deferz/go-mapster"
 )
 
 // Source and Target for basic tests
@@ -105,40 +102,4 @@ type TargetWithEmbedded struct {
 	Email string
 }
 
-// RegisterTestTypes registers all the test types used in the test suite
-func RegisterTestTypes(t *testing.T) {
-	// From basic_test.go
-	mapster.NewMapperConfig[Source, Target]().Register()
-	mapster.NewMapperConfig[Person, Person]().Register()
-	mapster.NewMapperConfig[*Source, *Target]().Register()
-	mapster.NewMapperConfig[int, int64]().Register()
-	mapster.NewMapperConfig[int, float64]().Register()
-	mapster.NewMapperConfig[float64, int]().Register()
-	// String conversions removed as they require custom converters
-	mapster.NewMapperConfig[EmptySource, EmptyTarget]().Register()
-	mapster.NewMapperConfig[uint, int]().Register()
-
-	// From collection_test.go
-	mapster.NewMapperConfig[Item, Item]().Register()
-	// No need to register slice and array types separately now
-	// No need to register map types separately now, just register key and value types
-	mapster.NewMapperConfig[string, string]().Register() // For map keys
-	mapster.NewMapperConfig[User, User]().Register()     // For map values
-
-	// From embedded_test.go
-	mapster.NewMapperConfig[BaseInfo, BaseInfo]().Register()
-	mapster.NewMapperConfig[SourceUser, TargetUser]().Register()
-	mapster.NewMapperConfig[Address, Address]().Register()
-	mapster.NewMapperConfig[SourcePerson, TargetPerson]().Register()
-	mapster.NewMapperConfig[Level3, Level3]().Register()
-	mapster.NewMapperConfig[Level2, Level2]().Register()
-	mapster.NewMapperConfig[Level1, Level1]().Register()
-	mapster.NewMapperConfig[BaseEmbedded, BaseEmbedded]().Register()
-	mapster.NewMapperConfig[SourceWithEmbedded, TargetWithEmbedded]().Register()
-}
-
-// init is called before any tests are run
-func init() {
-	// Register all test types
-	RegisterTestTypes(nil)
-}
+// 注意：由于映射现在在调用 Map 和 MapTo 时自动注册，我们不再需要显式注册类型映射关系
